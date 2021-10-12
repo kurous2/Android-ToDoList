@@ -1,6 +1,7 @@
 package com.dahee.to_do_list.Model;
 
 public class ToDoModel {
+    private int id, status;
     String task;
     boolean isExpanded,isChecked;
 
@@ -20,12 +21,27 @@ public class ToDoModel {
         isExpanded = expanded;
     }
 
-
     public String getTask() {
         return task;
     }
 
     public void setTask(String task) {
         this.task = task;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

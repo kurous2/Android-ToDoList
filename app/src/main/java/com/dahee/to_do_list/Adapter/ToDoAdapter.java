@@ -3,6 +3,7 @@ package com.dahee.to_do_list.Adapter;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,19 +15,22 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.dahee.to_do_list.MainActivity;
+import com.dahee.to_do_list.Task.AddNewTask;
+import com.dahee.to_do_list.Activity.MainActivity;
 import com.dahee.to_do_list.Model.ToDoModel;
 import com.dahee.to_do_list.R;
+import com.dahee.to_do_list.Utils.TaskDatabaseHelper;
 
-import java.sql.Struct;
 import java.util.List;
 
 public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
 
     List<ToDoModel> toDoList;
+    private TaskDatabaseHelper db;
     private MainActivity activity;
 
-    public ToDoAdapter(MainActivity activity){
+    public ToDoAdapter(TaskDatabaseHelper db, MainActivity activity) {
+        this.db = db;
         this.activity = activity;
     }
 
@@ -36,9 +40,21 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
         return new ViewHolder(itemView);
     }
     public void onBindViewHolder(ViewHolder holder,int position){
-        ToDoModel item = toDoList.get(position);
+
+        final ToDoModel item = toDoList.get(position);
         holder.task.setText(item.getTask());
-        holder.task.setChecked(item.isChecked());
+        holder.task.setChecked(toBoolean(item.getStatus()));
+        holder.task.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    db.updateStatus(item.getId(), 1);
+                } else {
+                    db.updateStatus(item.getId(), 0);
+                }
+            }
+        });
+
         boolean isExpanded = toDoList.get(position).isExpanded();
         holder.show.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -53,6 +69,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
             }
         });
         holder.expandableLayout.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
+        Log.d("TAG",item.getTask()+item.getStatus());
     }
 
     public int getItemCount(){
@@ -68,8 +85,25 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
         notifyDataSetChanged();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    public void deleteItem(int position) {
+        ToDoModel item = toDoList.get(position);
+        db.deleteTask(item.getId());
+        toDoList.remove(position);
+        notifyItemRemoved(position);
+    }
 
+    public void editItem(int position) {
+        ToDoModel item = toDoList.get(position);
+        Bundle bundle = new Bundle();
+        bundle.putInt("id", item.getId());
+        bundle.putString("task", item.getTask());
+        AddNewTask fragment = new AddNewTask();
+        fragment.setArguments(bundle);
+        fragment.show(activity.getSupportFragmentManager(), AddNewTask.TAG);
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder{
+        int position = getAdapterPosition();
         CheckBox task;
         ImageButton show;
         LinearLayout expandableLayout;
@@ -96,6 +130,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
 
                 @Override
                 public void onClick(View view) {
+
                     AlertDialog.Builder builder = new AlertDialog.Builder(delete.getContext());
                     builder.setTitle("Delete Task");
                     builder.setMessage("Are you sure you want to delete this Task?");
@@ -103,7 +138,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
                             new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-
+                                    deleteItem(getAdapterPosition());
                                 }
                             });
                     builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -114,6 +149,13 @@ public class ToDoAdapter extends RecyclerView.Adapter<ToDoAdapter.ViewHolder> {
                     });
                     AlertDialog dialog = builder.create();
                     dialog.show();
+                }
+            });
+            edit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    editItem(getAdapterPosition());
+                    show.setImageResource(R.drawable.ic_showmore);
                 }
             });
 //            task.setOnClickListener(new View.OnClickListener(){
